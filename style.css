@@ -1,0 +1,43 @@
+body {
+    font-family: 'Inter', sans-serif;
+    background-color: #f8f9fa;
+}
+/* Styling for print output */
+@media print {
+    body * {
+        visibility: hidden;
+    }
+    #print-area, #print-area * {
+        visibility: visible;
+    }
+    #print-area {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 100%;
+    }
+    @page {
+        size: A4;
+        margin: 2cm;
+    }
+}
+/* Login page styles */
+#login-page {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    background-color: #f8f9fa;
+}
+#main-content {
+    display: none;
+}
+/* Preview modal styles */
+#preview-modal .modal-dialog {
+    max-width: 210mm; /* A4 width */
+    height: 297mm; /* A4 height */
+}
+#preview-modal .modal-content {
+    height: 100%;
+    overflow: auto;
+}
