@@ -1,5 +1,6 @@
-// --- VALIDATION PAGE SCRIPT ---
 
+// --- VALIDATION PAGE SCRIPT ---
+let validationTable; 
 /**
  * Load disaster reports for monthly batch validation
  */
@@ -14,7 +15,14 @@ function loadPendingReports() {
         .then(data => {
             if (data.success) {
                 const tbody = document.getElementById('pending-reports-body');
-                tbody.innerHTML = '';
+
+                // 1. DESTROY existing DataTable instance if it exists
+                // We use the ID we added to the <table> tag
+                if ($.fn.DataTable.isDataTable('#pending-reports-table')) {
+                    $('#pending-reports-table').DataTable().destroy();
+                }
+
+                tbody.innerHTML = ''; // Clear table body
 
                 // Get current month reports
                 const currentMonth = new Date().getMonth();
@@ -36,47 +44,82 @@ function loadPendingReports() {
 
                 if (monthlyReports.length === 0) {
                     tbody.innerHTML = `<tr><td colspan="9" class="text-center py-4 text-muted">Tidak ada laporan bulan ini.</td></tr>`;
-                    return;
+                } else {
+                    // 2. GENERATE the table rows (This is your existing logic)
+                    monthlyReports.forEach(report => {
+                        const statusBadge = report.status === 'approved' ? '<span class="badge bg-success">Disetujui</span>' :
+                                           report.status === 'rejected' ? '<span class="badge bg-danger">Ditolak</span>' :
+                                           '<span class="badge bg-warning">Menunggu</span>';
+
+                        const checkbox = report.status === 'pending' ? `<input type="checkbox" class="report-checkbox" value="${report.id}">` : '';
+
+                        // Generate photo thumbnails
+                        let photoThumbnails = '';
+                        if (report.photos && report.photos.length > 0) {
+                            photoThumbnails = '<div class="d-flex flex-wrap gap-1">';
+                            report.photos.forEach(photo => {
+                                photoThumbnails += `<img src="${photo.file_path}" alt="Foto bencana" class="img-thumbnail" style="width: 40px; height: 40px; object-fit: cover;" data-bs-toggle="modal" data-bs-target="#photo-modal" data-photo-src="${photo.file_path}" data-photo-title="${photo.original_filename}">`;
+                            });
+                            photoThumbnails += '</div>';
+                        } else {
+                            photoThumbnails = '<span class="text-muted">Tidak ada foto</span>';
+                        }
+
+                        const row = `
+                            <tr>
+                                <td class="text-center">${checkbox}</td>
+                                <td class="fw-medium">${report.jenisBencana}</td>
+                                <td>${report.lokasi}</td>
+                                <td>${report.jiwaTerdampak} Jiwa / ${report.kkTerdampak} KK</td>
+                                <td>
+                                    <span class="badge ${
+                                        report.tingkatKerusakan === 'Berat' ? 'bg-danger-subtle text-danger-emphasis' :
+                                        report.tingkatKerusakan === 'Sedang' ? 'bg-warning-subtle text-warning-emphasis' : 'bg-secondary-subtle text-secondary-emphasis'
+                                    } rounded-pill">${report.tingkatKerusakan}</span>
+                                </td>
+                                <td>${report.submitted_by_name}</td>
+                                <td>${new Date(report.created_at).toLocaleDateString('id-ID', { year: 'numeric', month: 'long', day: 'numeric' })}</td>
+                                <td class="text-center">${photoThumbnails}</td>
+                                <td>${statusBadge}</td>
+                            </tr>
+                        `;
+                        tbody.innerHTML += row;
+                    });
                 }
 
-                monthlyReports.forEach(report => {
-                    const statusBadge = report.status === 'approved' ? '<span class="badge bg-success">Disetujui</span>' :
-                                       report.status === 'rejected' ? '<span class="badge bg-danger">Ditolak</span>' :
-                                       '<span class="badge bg-warning">Menunggu</span>';
-
-                    const checkbox = report.status === 'pending' ? `<input type="checkbox" class="report-checkbox" value="${report.id}">` : '';
-
-                    // Generate photo thumbnails
-                    let photoThumbnails = '';
-                    if (report.photos && report.photos.length > 0) {
-                        photoThumbnails = '<div class="d-flex flex-wrap gap-1">';
-                        report.photos.forEach(photo => {
-                            photoThumbnails += `<img src="${photo.file_path}" alt="Foto bencana" class="img-thumbnail" style="width: 40px; height: 40px; object-fit: cover;" data-bs-toggle="modal" data-bs-target="#photo-modal" data-photo-src="${photo.file_path}" data-photo-title="${photo.original_filename}">`;
-                        });
-                        photoThumbnails += '</div>';
-                    } else {
-                        photoThumbnails = '<span class="text-muted">Tidak ada foto</span>';
+                // 3. INITIALIZE the new DataTable instance
+                validationTable = $('#pending-reports-table').DataTable({
+                    "pageLength": 5, // Set default entries to 5
+                    "lengthMenu": [5, 10], // Show options for 5, 10, 25 entries
+                    "responsive": true,
+                    "order": [[ 6, "desc" ]], // Default sort by Tanggal (column 6) descending
+                    
+                    // Disable sorting on the Checkbox (col 0) and Foto (col 7)
+                    "columnDefs": [
+                      {
+                        "orderable": false,
+                        "targets": [0, 7] 
+                      },
+                      {
+                        "className": "text-center", // Center-align checkbox and photos
+                        "targets": [0, 7]
+                      }
+                    ],
+                    
+                    // Add Indonesian translation
+                    "language": {
+                        "search": "Cari:",
+                        "lengthMenu": "Tampilkan _MENU_ data",
+                        "info": "Menampilkan _START_ sampai _END_ dari _TOTAL_ data",
+                        "infoEmpty": "Tidak ada data",
+                        "infoFiltered": "(difilter dari _MAX_ total data)",
+                        "paginate": {
+                            "first": "Pertama",
+                            "last": "Terakhir",
+                            "next": "Berikutnya",
+                            "previous": "Sebelumnya"
+                        }
                     }
-
-                    const row = `
-                        <tr>
-                            <td>${checkbox}</td>
-                            <td class="fw-medium">${report.jenisBencana}</td>
-                            <td>${report.lokasi}</td>
-                            <td>${report.jiwaTerdampak} Jiwa / ${report.kkTerdampak} KK</td>
-                            <td>
-                                <span class="badge ${
-                                    report.tingkatKerusakan === 'Berat' ? 'bg-danger-subtle text-danger-emphasis' :
-                                    report.tingkatKerusakan === 'Sedang' ? 'bg-warning-subtle text-warning-emphasis' : 'bg-secondary-subtle text-secondary-emphasis'
-                                } rounded-pill">${report.tingkatKerusakan}</span>
-                            </td>
-                            <td>${report.submitted_by_name}</td>
-                            <td>${new Date(report.created_at).toLocaleDateString('id-ID', { year: 'numeric', month: 'long', day: 'numeric' })}</td>
-                            <td>${photoThumbnails}</td>
-                            <td>${statusBadge}</td>
-                        </tr>
-                    `;
-                    tbody.innerHTML += row;
                 });
 
                 // Update select all checkbox
@@ -370,6 +413,22 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Select all checkbox
     document.getElementById('select-all').addEventListener('change', handleSelectAll);
+
+    // Filter by Status
+    document.getElementById('filter-status').addEventListener('change', function(e) {
+        if (validationTable) {
+            // Column 8 is the "Status" column
+            validationTable.column(8).search(e.target.value).draw();
+        }
+    });
+
+    // Filter by Jenis Bencana
+    document.getElementById('filter-jenis').addEventListener('change', function(e) {
+        if (validationTable) {
+            // Column 1 is the "Jenis Bencana" column
+            validationTable.column(1).search(e.target.value).draw();
+        }
+    });
 
     // Individual checkboxes
     document.addEventListener('change', function(e) {

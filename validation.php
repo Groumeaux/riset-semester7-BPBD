@@ -15,8 +15,10 @@ $username = $_SESSION['username'] ?? '';
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Validasi Laporan Bencana - BPBD</title>
-    <!-- Bootstrap CSS -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" xintegrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" ...>
+    
+    <link rel="stylesheet" href="https://cdn.datatables.net/2.0.8/css/dataTables.bootstrap5.min.css">
+    
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
 </head>
@@ -91,9 +93,29 @@ $username = $_SESSION['username'] ?? '';
                     <button id="approve-all-btn" class="btn btn-success">Setujui Semua Laporan Bulan Ini</button>
                     <button id="reject-all-btn" class="btn btn-danger">Tolak Semua Laporan Bulan Ini</button>
                 </div>
-
+<div class="row g-3 mb-3">
+    <div class="col-md-4">
+        <label for="filter-status" class="form-label">Filter by Status</label>
+        <select id="filter-status" class="form-select">
+            <option value="">Semua Status</option>
+            <option value="Menunggu">Menunggu</option>
+            <option value="Disetujui">Disetujui</option>
+            <option value="Ditolak">Ditolak</option>
+        </select>
+    </div>
+    <div class="col-md-4">
+        <label for="filter-jenis" class="form-label">Filter by Jenis Bencana</label>
+        <select id="filter-jenis" class="form-select">
+            <option value="">Semua Jenis Bencana</option>
+            <option value="Banjir">Banjir</option>
+            <option value="Tanah Longsor">Tanah Longsor</option>
+            <option value="Angin Puting Beliung">Angin Puting Beliung</option>
+            <option value="Gempa Bumi">Gempa Bumi</option>
+        </select>
+    </div>
+</div>
                 <div class="table-responsive">
-                    <table class="table table-hover align-middle">
+                   <table id="pending-reports-table" class="table table-hover align-middle">
                         <thead class="table-light">
                             <tr>
                                 <th scope="col"><input type="checkbox" id="select-all"></th>
@@ -131,10 +153,19 @@ $username = $_SESSION['username'] ?? '';
         </div>
     </div>
 
-    <!-- Bootstrap JS Bundle -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" xintegrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
-    <!-- SweetAlert2 JS -->
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js" integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo=" crossorigin="anonymous"></script>
+    
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
+    
+    <script src="https://cdn.datatables.net/2.0.8/js/dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/2.0.8/js/dataTables.bootstrap5.min.js"></script>
+    
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    
     <script src="validate.js"></script>
+
+    </body>
+</html>
+</html>
 </body>
 </html>

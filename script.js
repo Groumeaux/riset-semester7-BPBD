@@ -118,14 +118,14 @@ function generateReportTable() {
 
         const row = `
             <tr>
-                <td>
+                <td class="text-center">
                     <span class="badge ${rankColor} rounded-pill fs-6">${rank}</span>
                 </td>
                 <td class="fw-medium">${item.jenisBencana}</td>
                 <td>${item.lokasi}</td>
                 <td>${formatDate(item.disaster_date)}</td>
                 <td>${item.jiwaTerdampak} Jiwa / ${item.kkTerdampak} KK</td>
-                <td>
+                <td class="text-center">
                      <span class="badge ${
                         item.tingkatKerusakan === 'Berat' ? 'bg-danger-subtle text-danger-emphasis' :
                         item.tingkatKerusakan === 'Sedang' ? 'bg-warning-subtle text-warning-emphasis' : 'bg-secondary-subtle text-secondary-emphasis'
@@ -243,7 +243,46 @@ function loadDisasterData() {
         .then(data => {
             if (data.success) {
                 disasterData = data.data;
+
+                // 1. DESTROY existing DataTable instance if it exists
+                // We use the ID we added to the <table> tag
+                if ($.fn.DataTable.isDataTable('#disaster-report-table')) {
+                    $('#disaster-report-table').DataTable().destroy();
+                }
+
+                // 2. GENERATE the table rows as usual
                 generateReportTable();
+
+                // 3. INITIALIZE the new DataTable instance
+                $('#disaster-report-table').DataTable({
+                    "pageLength": 5, // Set default entries to 5
+                    "lengthMenu": [3, 5], // Show options for 5, 10, 25, 50 entries
+                    "responsive": true,
+                    "order": [[ 0, "asc" ]], // Optional: default sort by Peringkat (column 0)
+                    
+                // ADD THIS 'columnDefs' SECTION
+                "columnDefs": [
+                {
+                    "orderable": false, // Disable sorting
+                    "targets": [1, 2, 3, 4, 5, 6, 7] // Target columns 1 through 7 (all except "Peringkat")
+                }
+                ],
+                    
+                    "language": {
+                        "search": "Cari:",
+                        "lengthMenu": "Tampilkan _MENU_ data",
+                        "info": "Menampilkan _START_ sampai _END_ dari _TOTAL_ data",
+                        "infoEmpty": "Tidak ada data",
+                        "infoFiltered": "(difilter dari _MAX_ total data)",
+                        "paginate": {
+                            "first": "Pertama",
+                            "last": "Terakhir",
+                            "next": "Berikutnya",
+                            "previous": "Sebelumnya"
+                        }
+                    }
+                });
+
             } else {
                 console.error('Error loading data:', data.message);
             }

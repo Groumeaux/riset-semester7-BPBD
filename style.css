@@ -320,3 +320,26 @@ body.logged-in {
     height: 100%;
     overflow: auto;
 }
+
+/* Custom DataTables Pagination Color */
+.pagination .page-item.active .page-link,
+.pagination .page-item.active .page-link:hover {
+    background-color: #2e308a;
+    border-color: #2e308a;
+    color: #fff; /* Ensures the page number is white and readable */
+}
+
+/* Optional: Changes the focus ring color to match */
+.pagination .page-item.active .page-link:focus {
+    box-shadow: 0 0 0 0.2rem rgba(46, 48, 138, 0.5);
+}
+
+/* Custom DataTables Pagination Color (NON-ACTIVE) */
+.pagination .page-item .page-link {
+    color: #2e308a;
+}
+
+/* Optional: Make the hover color a bit darker */
+.pagination .page-item .page-link:hover {
+    color: #1a1c52; 
+}
