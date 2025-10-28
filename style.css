@@ -2,32 +2,311 @@ body {
     font-family: 'Inter', sans-serif;
     background-color: #f8f9fa;
 }
-/* Styling for print output */
-@media print {
-    body * {
-        visibility: hidden;
-    }
-    #print-area, #print-area * {
-        visibility: visible;
-    }
-    #print-area {
-        position: absolute;
-        left: 0;
-        top: 0;
-        width: 100%;
-    }
-    @page {
-        size: A4;
-        margin: 2cm;
-    }
+
+/* Login page specific overflow control */
+body.login-page {
+    overflow: hidden;
 }
-/* Login page styles */
+
+/* Main content pages allow scrolling */
+body.logged-in {
+    overflow: auto;
+}
+/* Login page styles - BPBD Theme */
 #login-page {
     display: flex;
     justify-content: center;
     align-items: center;
     height: 100vh;
-    background-color: #f8f9fa;
+    background-image: url('uploads/login-background.webp'); /* Background image */
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    color: white;
+    position: relative;
+}
+
+#login-page::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 73, 157, 0.3); /* Semi-transparent BPBD blue overlay */
+    backdrop-filter: blur(8px); /* Glass blur effect */
+    -webkit-backdrop-filter: blur(8px); /* Safari support */
+    z-index: 1;
+}
+
+.login-container {
+    position: relative;
+    z-index: 2; /* Above the overlay */
+}
+
+.login-container {
+    display: flex;
+    width: 100%;
+    max-width: 1200px;
+    min-height: 500px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 15px;
+    overflow: hidden;
+    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.3);
+}
+
+.login-form-section {
+    flex: 1;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 40px;
+    background: rgba(255, 255, 255, 0.95);
+}
+
+.login-logo-section {
+    flex: 1;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 40px;
+    background: rgba(255, 255, 255, 0.05);
+    border-left: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.logo-container {
+    text-align: center;
+    color: white;
+}
+
+.bpbd-logo {
+    width: 120px;
+    height: 120px;
+    object-fit: contain;
+    margin-bottom: 20px;
+    filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.3));
+}
+
+.logo-title {
+    font-size: 1.5rem;
+    font-weight: bold;
+    margin-bottom: 10px;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.logo-subtitle {
+    font-size: 1.1rem;
+    opacity: 0.9;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+#login-page .bg-white {
+    background-color: rgba(255, 255, 255, 0.95) !important; /* Semi-transparent white for form */
+    color: #333; /* Dark text for readability */
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    width: 100%;
+    max-width: 400px;
+}
+
+#login-page h2 {
+    color: #e60013; /* BPBD red for title */
+    font-weight: bold;
+}
+
+#login-page .btn-primary {
+    background-color: #00499d; /* BPBD dark blue button */
+    border-color: #00499d;
+}
+
+#login-page .btn-primary:hover {
+    background-color: #003d7a; /* Darker BPBD blue on hover */
+    border-color: #003d7a;
+}
+
+#login-page .form-label {
+    color: #333; /* Dark labels */
+}
+
+/* Welcome section styles */
+.welcome-section {
+    border-bottom: 2px solid #e9ecef;
+    padding-bottom: 1rem;
+    margin-bottom: 2rem;
+}
+
+.welcome-icon {
+    color: #00499d;
+}
+
+.welcome-title {
+    color: #00499d;
+    font-weight: 600;
+    font-size: 1.5rem;
+    margin-bottom: 0.5rem;
+}
+
+.welcome-subtitle {
+    color: #666;
+    font-size: 0.95rem;
+    margin-bottom: 0.5rem;
+}
+
+.welcome-tagline {
+    color: #e60013;
+    font-style: italic;
+    font-size: 0.85rem;
+    font-weight: 500;
+}
+
+/* Main page BPBD theming */
+.bpbd-header {
+    background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+    border-left: 4px solid #00499d;
+    position: relative;
+}
+
+.bpbd-header::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(135deg, rgba(0, 73, 157, 0.05) 0%, rgba(230, 0, 19, 0.05) 50%, rgba(239, 130, 0, 0.05) 100%);
+    border-radius: inherit;
+    z-index: 0;
+}
+
+.bpbd-header > .d-flex {
+    position: relative;
+    z-index: 1;
+}
+
+.header-logo {
+    background: rgba(255, 255, 255, 0.9);
+    padding: 0.5rem;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.header-bpbd-logo {
+    width: 50px;
+    height: 50px;
+    object-fit: contain;
+}
+
+/* BPBD themed buttons */
+.btn-bpbd-primary {
+    background-color: #00499d;
+    border-color: #00499d;
+    color: white;
+    transition: all 0.3s ease;
+}
+
+.btn-bpbd-primary:hover {
+    background-color: #0066cc;
+    border-color: #0066cc;
+    color: white;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 73, 157, 0.3);
+}
+
+.btn-bpbd-secondary {
+    background-color: #6c757d;
+    border-color: #6c757d;
+    color: white;
+    transition: all 0.3s ease;
+}
+
+.btn-bpbd-secondary:hover {
+    background-color: #7a8288;
+    border-color: #7a8288;
+    color: white;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(108, 117, 125, 0.3);
+}
+
+/* Consistent hover effects for all buttons */
+.btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+/* Enhanced card styling */
+.bg-white {
+    background: linear-gradient(135deg, #ffffff 0%, #fefefe 100%) !important;
+    border: 1px solid rgba(0, 73, 157, 0.1);
+    transition: all 0.3s ease;
+}
+
+.bg-white:hover {
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+    transform: translateY(-2px);
+}
+
+/* Table enhancements */
+.table {
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.table thead th {
+    background: linear-gradient(135deg, #00499d 0%, #0066cc 100%);
+    color: white;
+    border: none;
+    font-weight: 600;
+    text-transform: uppercase;
+    font-size: 0.85rem;
+    letter-spacing: 0.5px;
+    vertical-align: middle;
+}
+
+.table tbody tr:hover {
+    background-color: rgba(0, 73, 157, 0.05);
+}
+
+/* Form enhancements */
+.form-control:focus {
+    border-color: #00499d;
+    box-shadow: 0 0 0 0.2rem rgba(0, 73, 157, 0.25);
+}
+
+.form-select:focus {
+    border-color: #00499d;
+    box-shadow: 0 0 0 0.2rem rgba(0, 73, 157, 0.25);
+}
+
+/* Responsive design for mobile */
+@media (max-width: 768px) {
+    .login-container {
+        flex-direction: column;
+        min-height: auto;
+    }
+
+    .login-form-section,
+    .login-logo-section {
+        flex: none;
+        padding: 20px;
+    }
+
+    .login-logo-section {
+        border-left: none;
+        border-top: 1px solid rgba(255, 255, 255, 0.2);
+    }
+
+    .bpbd-logo {
+        width: 80px;
+        height: 80px;
+    }
+
+    .logo-title {
+        font-size: 1.2rem;
+    }
+
+    .logo-subtitle {
+        font-size: 1rem;
+    }
 }
 #main-content {
     display: none;

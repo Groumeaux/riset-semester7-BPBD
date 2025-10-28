@@ -1,0 +1,147 @@
+/* Login page styles - BPBD Theme */
+#login-page {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    background-image: url('uploads/login-background.webp'); /* Background image */
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    color: white;
+    position: relative;
+    overflow: hidden; /* Prevent scrolling on login page */
+}
+
+#login-page::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 73, 157, 0.3); /* Semi-transparent BPBD blue overlay */
+    backdrop-filter: blur(8px); /* Glass blur effect */
+    -webkit-backdrop-filter: blur(8px); /* Safari support */
+    z-index: 1;
+}
+
+.login-container {
+    position: relative;
+    z-index: 2; /* Above the overlay */
+}
+
+.login-container {
+    display: flex;
+    width: 100%;
+    max-width: 1200px;
+    min-height: 500px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 15px;
+    overflow: hidden;
+    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.3);
+}
+
+.login-form-section {
+    flex: 1;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 40px;
+    background: rgba(255, 255, 255, 0.95);
+}
+
+.login-logo-section {
+    flex: 1;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 40px;
+    background: rgba(255, 255, 255, 0.05);
+    border-left: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.logo-container {
+    text-align: center;
+    color: white;
+}
+
+.bpbd-logo {
+    width: 120px;
+    height: 120px;
+    object-fit: contain;
+    margin-bottom: 20px;
+    filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.3));
+}
+
+.logo-title {
+    font-size: 1.5rem;
+    font-weight: bold;
+    margin-bottom: 10px;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.logo-subtitle {
+    font-size: 1.1rem;
+    opacity: 0.9;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+#login-page .bg-white {
+    background-color: rgba(255, 255, 255, 0.95) !important; /* Semi-transparent white for form */
+    color: #333; /* Dark text for readability */
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    width: 100%;
+    max-width: 400px;
+}
+
+#login-page h2 {
+    color: #e60013; /* BPBD red for title */
+    font-weight: bold;
+}
+
+#login-page .btn-primary {
+    background-color: #00499d; /* BPBD dark blue button */
+    border-color: #00499d;
+}
+
+#login-page .btn-primary:hover {
+    background-color: #003d7a; /* Darker BPBD blue on hover */
+    border-color: #003d7a;
+}
+
+#login-page .form-label {
+    color: #333; /* Dark labels */
+}
+
+/* Responsive design for mobile */
+@media (max-width: 768px) {
+    .login-container {
+        flex-direction: column;
+        min-height: auto;
+    }
+
+    .login-form-section,
+    .login-logo-section {
+        flex: none;
+        padding: 20px;
+    }
+
+    .login-logo-section {
+        border-left: none;
+        border-top: 1px solid rgba(255, 255, 255, 0.2);
+    }
+
+    .bpbd-logo {
+        width: 80px;
+        height: 80px;
+    }
+
+    .logo-title {
+        font-size: 1.2rem;
+    }
+
+    .logo-subtitle {
+        font-size: 1rem;
+    }
+}

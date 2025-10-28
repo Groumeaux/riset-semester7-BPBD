@@ -17,6 +17,20 @@ const quantificationScores = {
 // 3. Data will be loaded from database
 let disasterData = [];
 
+/**
+ * Format date to Indonesian format: "16 Oktober 2025"
+ * @param {string} dateString - Date string in YYYY-MM-DD format
+ * @returns {string} Formatted date string
+ */
+function formatDate(dateString) {
+    const date = new Date(dateString);
+    const day = date.getDate();
+    const monthNames = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
+    const month = monthNames[date.getMonth()];
+    const year = date.getFullYear();
+    return `${day} ${month} ${year}`;
+}
+
 // --- FUNGSI UTAMA APLIKASI ---
 
 /**
@@ -82,13 +96,25 @@ function generateReportTable() {
     tableBody.innerHTML = ''; // Kosongkan tabel sebelum diisi
 
     if (rankedData.length === 0) {
-        tableBody.innerHTML = `<tr><td colspan="6" class="text-center py-4 text-muted">Belum ada data bencana.</td></tr>`;
+        tableBody.innerHTML = `<tr><td colspan="8" class="text-center py-4 text-muted">Belum ada data bencana.</td></tr>`;
         return;
     }
 
     rankedData.forEach((item, index) => {
         const rank = index + 1;
         const rankColor = rank === 1 ? 'bg-danger-subtle text-danger-emphasis' : (rank === 2 ? 'bg-warning-subtle text-warning-emphasis' : 'bg-success-subtle text-success-emphasis');
+
+        // Generate photo thumbnails
+        let photoThumbnails = '';
+        if (item.photos && item.photos.length > 0) {
+            photoThumbnails = '<div class="d-flex flex-wrap gap-1">';
+            item.photos.forEach(photo => {
+                photoThumbnails += `<img src="${photo.file_path}" alt="Foto bencana" class="img-thumbnail" style="width: 40px; height: 40px; object-fit: cover; cursor: pointer;" data-bs-toggle="modal" data-bs-target="#photo-modal" data-photo-src="${photo.file_path}" data-photo-title="${photo.original_filename}">`;
+            });
+            photoThumbnails += '</div>';
+        } else {
+            photoThumbnails = '<span class="text-muted">Tidak ada foto</span>';
+        }
 
         const row = `
             <tr>
@@ -97,6 +123,7 @@ function generateReportTable() {
                 </td>
                 <td class="fw-medium">${item.jenisBencana}</td>
                 <td>${item.lokasi}</td>
+                <td>${formatDate(item.disaster_date)}</td>
                 <td>${item.jiwaTerdampak} Jiwa / ${item.kkTerdampak} KK</td>
                 <td>
                      <span class="badge ${
@@ -105,6 +132,7 @@ function generateReportTable() {
                      } rounded-pill">${item.tingkatKerusakan}</span>
                 </td>
                 <td class="fw-bold text-primary">${item.finalScore.toFixed(4)}</td>
+                <td>${photoThumbnails}</td>
             </tr>
         `;
         tableBody.innerHTML += row;
@@ -128,16 +156,31 @@ function handleFormSubmit(event) {
     .then(response => response.json())
     .then(data => {
         if (data.success) {
-            alert(data.message);
+            Swal.fire({
+                icon: 'success',
+                title: 'Berhasil!',
+                text: data.message,
+                confirmButtonColor: '#00499d'
+            });
             form.reset();
             loadDisasterData(); // Reload data from server
         } else {
-            alert('Error: ' + data.message);
+            Swal.fire({
+                icon: 'error',
+                title: 'Gagal!',
+                text: data.message,
+                confirmButtonColor: '#e60013'
+            });
         }
     })
     .catch(error => {
         console.error('Error:', error);
-        alert('Error saving disaster report');
+        Swal.fire({
+            icon: 'error',
+            title: 'Error!',
+            text: 'Terjadi kesalahan saat menyimpan laporan bencana',
+            confirmButtonColor: '#e60013'
+        });
     });
 }
 
@@ -160,15 +203,34 @@ function handleLogin(event) {
     .then(response => response.json())
     .then(data => {
         if (data.success) {
-            // Reload page to show main content based on session
-            window.location.reload();
+            Swal.fire({
+                icon: 'success',
+                title: 'Login Berhasil!',
+                text: 'Selamat datang di sistem BPBD.',
+                confirmButtonColor: '#00499d',
+                timer: 1500,
+                showConfirmButton: false
+            }).then(() => {
+                // Reload page to show main content based on session
+                window.location.reload();
+            });
         } else {
-            alert('Error: ' + data.message);
+            Swal.fire({
+                icon: 'error',
+                title: 'Login Gagal!',
+                text: data.message,
+                confirmButtonColor: '#e60013'
+            });
         }
     })
     .catch(error => {
         console.error('Error:', error);
-        alert('Error during login');
+        Swal.fire({
+            icon: 'error',
+            title: 'Error!',
+            text: 'Terjadi kesalahan saat login',
+            confirmButtonColor: '#e60013'
+        });
     });
 }
 
@@ -195,7 +257,29 @@ function loadDisasterData() {
  * Handle logout
  */
 function handleLogout() {
-    window.location.href = 'logout.php';
+    Swal.fire({
+        title: 'Konfirmasi Logout',
+        text: 'Apakah Anda yakin ingin keluar dari sistem?',
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonColor: '#00499d',
+        cancelButtonColor: '#6c757d',
+        confirmButtonText: 'Ya, Logout',
+        cancelButtonText: 'Batal'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            Swal.fire({
+                title: 'Logout Berhasil!',
+                text: 'Terima kasih telah menggunakan sistem BPBD.',
+                icon: 'success',
+                confirmButtonColor: '#00499d',
+                timer: 1500,
+                showConfirmButton: false
+            }).then(() => {
+                window.location.href = 'logout.php';
+            });
+        }
+    });
 }
 
 /**
@@ -203,7 +287,6 @@ function handleLogout() {
  */
 function handlePrintReport() {
     const rankedData = runSAW(disasterData);
-    const printArea = document.getElementById('print-area');
     const previewContent = document.getElementById('preview-content');
     const today = new Date();
     const monthNames = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
@@ -213,23 +296,33 @@ function handlePrintReport() {
 
     let tableRows = '';
     rankedData.forEach((item, index) => {
+        // NEW: Generate photo cell for print view
+        let photoCell = '<span style="font-size: 10px; color: #666;">Tidak ada foto</span>';
+        if (item.photos && item.photos.length > 0) {
+            // We'll just show the first photo in the report for brevity
+            // The image path needs to be a full URL for the print view to access it
+            const imageUrl = new URL(item.photos[0].file_path, window.location.href).href;
+            photoCell = `<img src="${imageUrl}" alt="Foto Bencana" style="width: 100%; height: 100%; object-fit: cover;">`;
+        }
+
         tableRows += `
             <tr style="border-bottom: 1px solid #ddd; page-break-inside: avoid;">
-                <td style="padding: 8px; text-align: center;">${index + 1}</td>
-                <td style="padding: 8px;">${item.jenisBencana}</td>
-                <td style="padding: 8px;">${item.lokasi}</td>
-                <td style="padding: 8px; text-align: center;">${item.jiwaTerdampak}</td>
-                <td style="padding: 8px; text-align: center;">${item.kkTerdampak}</td>
-                <td style="padding: 8px;">${item.tingkatKerusakan}</td>
-                <td style="padding: 8px; font-weight: bold;">${item.finalScore.toFixed(4)}</td>
+                <td style="padding: 8px; text-align: center; vertical-align: middle;">${index + 1}</td>
+                <td style="padding: 8px; vertical-align: middle;">${item.jenisBencana}</td>
+                <td style="padding: 8px; vertical-align: middle;">${item.lokasi}</td>
+                <td style="padding: 8px; text-align: center; vertical-align: middle;">${formatDate(item.disaster_date)}</td>
+                <td style="padding: 8px; text-align: center; vertical-align: middle;">${item.jiwaTerdampak}</td>
+                <td style="padding: 8px; text-align: center; vertical-align: middle;">${item.kkTerdampak}</td>
+                <td style="padding: 8px; vertical-align: middle;">${item.tingkatKerusakan}</td>
+                <td style="padding: 8px; font-weight: bold; vertical-align: middle;">${item.finalScore.toFixed(4)}</td>
+                <td style="padding: 0; text-align: center; vertical-align: middle; width: 120px; height: 120px;">${photoCell}</td>
             </tr>
         `;
     });
 
     const printContent = `
         <div style="font-family: Arial, sans-serif; width: 100%; transform: scale(0.8); transform-origin: top left;">
-            <div style="text-align: center; border-bottom: 2px solid black; padding-bottom: 10px; margin-bottom: 20px;">
-                <!-- Anda bisa menambahkan logo di sini -->
+            <div style="text-align: center; border-bottom: 2px solid black; padding-bottom: 10px; margin-bottom: 20px; page-break-before: always; page-break-after: avoid;">
                 <h2 style="margin: 0; font-size: 24px; font-weight: bold;">BADAN PENANGGULANGAN BENCANA DAERAH</h2>
                 <h3 style="margin: 0; font-size: 20px;">KABUPATEN MINAHASA</h3>
                 <p style="margin: 5px 0 0; font-size: 12px;">Alamat: Jl. Instansi No. 123, Tondano, Minahasa, Sulawesi Utara</p>
@@ -244,10 +337,12 @@ function handlePrintReport() {
                         <th style="padding: 8px; border: 1px solid #ddd; text-align: center;">Peringkat</th>
                         <th style="padding: 8px; border: 1px solid #ddd;">Jenis Bencana</th>
                         <th style="padding: 8px; border: 1px solid #ddd;">Lokasi</th>
+                        <th style="padding: 8px; border: 1px solid #ddd; text-align: center;">Tanggal</th>
                         <th style="padding: 8px; border: 1px solid #ddd; text-align: center;">Jiwa</th>
                         <th style="padding: 8px; border: 1px solid #ddd; text-align: center;">KK</th>
                         <th style="padding: 8px; border: 1px solid #ddd;">Kerusakan</th>
                         <th style="padding: 8px; border: 1px solid #ddd;">Indeks Dampak</th>
+                        <th style="padding: 8px; border: 1px solid #ddd; text-align: center;">Dokumentasi</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -277,14 +372,69 @@ function handlePrintReport() {
  * Menangani konfirmasi cetak dari modal preview
  */
 function handleConfirmPrint() {
-    const printArea = document.getElementById('print-area');
     const previewContent = document.getElementById('preview-content');
-    printArea.innerHTML = previewContent.innerHTML.replace('transform: scale(0.8); transform-origin: top left;', ''); // Remove scale for actual print
-    window.print();
-    printArea.innerHTML = ''; // Clean up after printing
-    const modal = bootstrap.Modal.getInstance(document.getElementById('preview-modal'));
-    modal.hide();
+
+    // Get the print content and ensure it's properly formatted
+    let printContent = previewContent.innerHTML;
+
+    // Remove the scale transform for printing
+    printContent = printContent.replace('transform: scale(0.8); transform-origin: top left;', '');
+
+    // Ensure the content has proper HTML structure
+    if (!printContent.includes('<html>')) {
+        printContent = `
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <meta charset="UTF-8">
+                <title>Laporan Bencana</title>
+                <style>
+                    body { font-family: Arial, sans-serif; margin: 0; padding: 20px; }
+                    table { width: 100%; border-collapse: collapse; }
+                    th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+                    th { background-color: #f2f2f2; }
+                    .text-center { text-align: center; }
+                    .text-right { text-align: right; }
+                    .font-weight-bold { font-weight: bold; }
+                    .text-decoration-underline { text-decoration: underline; }
+                    .border-bottom { border-bottom: 2px solid black; padding-bottom: 10px; margin-bottom: 20px; }
+                    @page { size: A4; margin: 2cm; }
+                </style>
+            </head>
+            <body>
+                ${printContent}
+            </body>
+            </html>
+        `;
+    }
+
+    // Open a new window with the print content
+    const printWindow = window.open('', '_blank', 'width=800,height=600');
+
+    // Write the print content to the new window
+    printWindow.document.write(printContent);
+    printWindow.document.close();
+
+    // Wait for the content to load, then trigger print
+    printWindow.onload = function() {
+        printWindow.print();
+
+        // Close the print window after printing (optional, or let user close)
+        printWindow.onafterprint = function() {
+            printWindow.close();
+        };
+    };
+
+    // Hide the modal after opening print window
+    const modalElement = document.getElementById('preview-modal');
+    if (modalElement) {
+        const modal = bootstrap.Modal.getInstance(modalElement);
+        if (modal) {
+            modal.hide();
+        }
+    }
 }
+
 
 // --- EVENT LISTENERS ---
 
@@ -314,3 +464,14 @@ document.getElementById('print-report').addEventListener('click', handlePrintRep
 
 // Tambahkan event listener untuk konfirmasi cetak
 document.getElementById('confirm-print').addEventListener('click', handleConfirmPrint);
+
+// Handle photo modal
+document.addEventListener('click', function(e) {
+    if (e.target.matches('[data-bs-target="#photo-modal"]')) {
+        const imgSrc = e.target.getAttribute('data-photo-src');
+        const imgTitle = e.target.getAttribute('data-photo-title');
+        document.getElementById('photo-modal-image').src = imgSrc;
+        document.getElementById('photoModalLabel').textContent = imgTitle || 'Foto Bencana';
+    }
+});
+

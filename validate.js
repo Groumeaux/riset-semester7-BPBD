@@ -35,7 +35,7 @@ function loadPendingReports() {
                 document.getElementById('rejected-count').textContent = rejectedCount;
 
                 if (monthlyReports.length === 0) {
-                    tbody.innerHTML = `<tr><td colspan="8" class="text-center py-4 text-muted">Tidak ada laporan bulan ini.</td></tr>`;
+                    tbody.innerHTML = `<tr><td colspan="9" class="text-center py-4 text-muted">Tidak ada laporan bulan ini.</td></tr>`;
                     return;
                 }
 
@@ -45,6 +45,18 @@ function loadPendingReports() {
                                        '<span class="badge bg-warning">Menunggu</span>';
 
                     const checkbox = report.status === 'pending' ? `<input type="checkbox" class="report-checkbox" value="${report.id}">` : '';
+
+                    // Generate photo thumbnails
+                    let photoThumbnails = '';
+                    if (report.photos && report.photos.length > 0) {
+                        photoThumbnails = '<div class="d-flex flex-wrap gap-1">';
+                        report.photos.forEach(photo => {
+                            photoThumbnails += `<img src="${photo.file_path}" alt="Foto bencana" class="img-thumbnail" style="width: 40px; height: 40px; object-fit: cover;" data-bs-toggle="modal" data-bs-target="#photo-modal" data-photo-src="${photo.file_path}" data-photo-title="${photo.original_filename}">`;
+                        });
+                        photoThumbnails += '</div>';
+                    } else {
+                        photoThumbnails = '<span class="text-muted">Tidak ada foto</span>';
+                    }
 
                     const row = `
                         <tr>
@@ -60,6 +72,7 @@ function loadPendingReports() {
                             </td>
                             <td>${report.submitted_by_name}</td>
                             <td>${new Date(report.created_at).toLocaleDateString('id-ID', { year: 'numeric', month: 'long', day: 'numeric' })}</td>
+                            <td>${photoThumbnails}</td>
                             <td>${statusBadge}</td>
                         </tr>
                     `;
@@ -101,15 +114,29 @@ function validateReport(id, action) {
     .then(response => response.json())
     .then(data => {
         if (data.success) {
-            alert(data.message);
+            Swal.fire({
+                icon: 'success',
+                title: 'Berhasil!',
+                text: data.message,
+                timer: 2000,
+                showConfirmButton: false
+            });
             loadPendingReports(); // Reload the list
         } else {
-            alert('Error: ' + data.message);
+            Swal.fire({
+                icon: 'error',
+                title: 'Gagal!',
+                text: data.message
+            });
         }
     })
     .catch(error => {
         console.error('Error:', error);
-        alert('Gagal memproses validasi laporan.');
+        Swal.fire({
+            icon: 'error',
+            title: 'Error!',
+            text: 'Gagal memproses validasi laporan.'
+        });
     });
 }
 
@@ -157,6 +184,20 @@ function updateButtonText() {
 }
 
 /**
+ * Initialize button states on page load
+ */
+function initializeButtons() {
+    const approveBtn = document.getElementById('approve-all-btn');
+    const rejectBtn = document.getElementById('reject-all-btn');
+
+    // Ensure buttons start disabled
+    approveBtn.disabled = true;
+    rejectBtn.disabled = true;
+}
+
+
+
+/**
  * Handle select all checkbox
  */
 function handleSelectAll() {
@@ -166,6 +207,9 @@ function handleSelectAll() {
     checkboxes.forEach(checkbox => {
         checkbox.checked = selectAllCheckbox.checked;
     });
+
+    // Update button states after selecting/deselecting all
+    updateButtonText();
 }
 
 /**
@@ -175,41 +219,68 @@ function approveAllReports() {
     const selectedCheckboxes = document.querySelectorAll('.report-checkbox:checked');
 
     if (selectedCheckboxes.length === 0) {
-        alert('Pilih laporan yang ingin disetujui terlebih dahulu.');
-        return;
-    }
-
-    if (!confirm(`Apakah Anda yakin ingin menyetujui ${selectedCheckboxes.length} laporan?`)) {
-        return;
-    }
-
-    const promises = Array.from(selectedCheckboxes).map(checkbox => {
-        const formData = new FormData();
-        formData.append('id', checkbox.value);
-        formData.append('action', 'approved');
-
-        return fetch('validation_process.php', {
-            method: 'POST',
-            body: formData
-        }).then(response => response.json());
-    });
-
-    Promise.all(promises)
-        .then(results => {
-            const successCount = results.filter(r => r.success).length;
-            const failCount = results.length - successCount;
-
-            if (failCount === 0) {
-                alert(`Berhasil menyetujui ${successCount} laporan.`);
-            } else {
-                alert(`Berhasil menyetujui ${successCount} laporan, gagal ${failCount} laporan.`);
-            }
-            loadPendingReports();
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            alert('Gagal memproses validasi laporan.');
+        Swal.fire({
+            icon: 'warning',
+            title: 'Pilih Laporan!',
+            text: 'Pilih laporan yang ingin disetujui terlebih dahulu.'
         });
+        return;
+    }
+
+    Swal.fire({
+        title: 'Apakah Anda yakin?',
+        text: `Anda akan menyetujui ${selectedCheckboxes.length} laporan.`,
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonColor: '#28a745',
+        cancelButtonColor: '#6c757d',
+        confirmButtonText: 'Ya, Setujui',
+        cancelButtonText: 'Batal'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            const promises = Array.from(selectedCheckboxes).map(checkbox => {
+                const formData = new FormData();
+                formData.append('id', checkbox.value);
+                formData.append('action', 'approved');
+
+                return fetch('validation_process.php', {
+                    method: 'POST',
+                    body: formData
+                }).then(response => response.json());
+            });
+
+            Promise.all(promises)
+                .then(results => {
+                    const successCount = results.filter(r => r.success).length;
+                    const failCount = results.length - successCount;
+
+                    if (failCount === 0) {
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Berhasil!',
+                            text: `Berhasil menyetujui ${successCount} laporan.`,
+                            timer: 2000,
+                            showConfirmButton: false
+                        });
+                    } else {
+                        Swal.fire({
+                            icon: 'warning',
+                            title: 'Sebagian Berhasil',
+                            text: `Berhasil menyetujui ${successCount} laporan, gagal ${failCount} laporan.`
+                        });
+                    }
+                    loadPendingReports();
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error!',
+                        text: 'Gagal memproses validasi laporan.'
+                    });
+                });
+        }
+    });
 }
 
 /**
@@ -219,41 +290,68 @@ function rejectAllReports() {
     const selectedCheckboxes = document.querySelectorAll('.report-checkbox:checked');
 
     if (selectedCheckboxes.length === 0) {
-        alert('Pilih laporan yang ingin ditolak terlebih dahulu.');
-        return;
-    }
-
-    if (!confirm(`Apakah Anda yakin ingin menolak ${selectedCheckboxes.length} laporan?`)) {
-        return;
-    }
-
-    const promises = Array.from(selectedCheckboxes).map(checkbox => {
-        const formData = new FormData();
-        formData.append('id', checkbox.value);
-        formData.append('action', 'rejected');
-
-        return fetch('validation_process.php', {
-            method: 'POST',
-            body: formData
-        }).then(response => response.json());
-    });
-
-    Promise.all(promises)
-        .then(results => {
-            const successCount = results.filter(r => r.success).length;
-            const failCount = results.length - successCount;
-
-            if (failCount === 0) {
-                alert(`Berhasil menolak ${successCount} laporan.`);
-            } else {
-                alert(`Berhasil menolak ${successCount} laporan, gagal ${failCount} laporan.`);
-            }
-            loadPendingReports();
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            alert('Gagal memproses validasi laporan.');
+        Swal.fire({
+            icon: 'warning',
+            title: 'Pilih Laporan!',
+            text: 'Pilih laporan yang ingin ditolak terlebih dahulu.'
         });
+        return;
+    }
+
+    Swal.fire({
+        title: 'Apakah Anda yakin?',
+        text: `Anda akan menolak ${selectedCheckboxes.length} laporan.`,
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonColor: '#dc3545',
+        cancelButtonColor: '#6c757d',
+        confirmButtonText: 'Ya, Tolak',
+        cancelButtonText: 'Batal'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            const promises = Array.from(selectedCheckboxes).map(checkbox => {
+                const formData = new FormData();
+                formData.append('id', checkbox.value);
+                formData.append('action', 'rejected');
+
+                return fetch('validation_process.php', {
+                    method: 'POST',
+                    body: formData
+                }).then(response => response.json());
+            });
+
+            Promise.all(promises)
+                .then(results => {
+                    const successCount = results.filter(r => r.success).length;
+                    const failCount = results.length - successCount;
+
+                    if (failCount === 0) {
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Berhasil!',
+                            text: `Berhasil menolak ${successCount} laporan.`,
+                            timer: 2000,
+                            showConfirmButton: false
+                        });
+                    } else {
+                        Swal.fire({
+                            icon: 'warning',
+                            title: 'Sebagian Berhasil',
+                            text: `Berhasil menolak ${successCount} laporan, gagal ${failCount} laporan.`
+                        });
+                    }
+                    loadPendingReports();
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error!',
+                        text: 'Gagal memproses validasi laporan.'
+                    });
+                });
+        }
+    });
 }
 
 /**
@@ -267,6 +365,7 @@ function handleLogout() {
 
 // Load pending reports when page loads
 document.addEventListener('DOMContentLoaded', function() {
+    initializeButtons();
     loadPendingReports();
 
     // Select all checkbox
@@ -287,5 +386,15 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Logout button
     document.getElementById('logout-btn').addEventListener('click', handleLogout);
+
+    // Handle photo modal
+    document.addEventListener('click', function(e) {
+        if (e.target.matches('[data-bs-target="#photo-modal"]')) {
+            const imgSrc = e.target.getAttribute('data-photo-src');
+            const imgTitle = e.target.getAttribute('data-photo-title');
+            document.getElementById('photo-modal-image').src = imgSrc;
+            document.getElementById('photoModalLabel').textContent = imgTitle || 'Foto Bencana';
+        }
+    });
 });
 
