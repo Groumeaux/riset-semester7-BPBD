@@ -182,6 +182,7 @@ $username = $_SESSION['username'] ?? '';
                                     <th scope="col">Kerusakan</th>
                                     <th scope="col">Indeks Dampak (SAW)</th>
                                     <th scope="col">Foto</th>
+                                    <th scope="col">Aksi</th>
                                 </tr>
                             </thead>
                             <tbody id="report-table-body">
