@@ -16,14 +16,6 @@ function loadPendingReports() {
             if (data.success) {
                 const tbody = document.getElementById('pending-reports-body');
 
-                // 1. DESTROY existing DataTable instance if it exists
-                // We use the ID we added to the <table> tag
-                if ($.fn.DataTable.isDataTable('#pending-reports-table')) {
-                    $('#pending-reports-table').DataTable().destroy();
-                }
-
-                tbody.innerHTML = ''; // Clear table body
-
                 // Get current month reports
                 const currentMonth = new Date().getMonth();
                 const currentYear = new Date().getFullYear();
@@ -45,7 +37,14 @@ function loadPendingReports() {
                 if (monthlyReports.length === 0) {
                     tbody.innerHTML = `<tr><td colspan="9" class="text-center py-4 text-muted">Tidak ada laporan bulan ini.</td></tr>`;
                 } else {
-                    // 2. GENERATE the table rows (This is your existing logic)
+                    // 1. DESTROY existing DataTable instance if it exists
+                    if ($.fn.DataTable.isDataTable('#pending-reports-table')) {
+                        $('#pending-reports-table').DataTable().destroy();
+                    }
+
+                    tbody.innerHTML = ''; // Clear table body
+
+                    // 2. GENERATE the table rows
                     monthlyReports.forEach(report => {
                         const statusBadge = report.status === 'approved' ? '<span class="badge bg-success">Disetujui</span>' :
                                            report.status === 'rejected' ? '<span class="badge bg-danger">Ditolak</span>' :
@@ -85,42 +84,38 @@ function loadPendingReports() {
                         `;
                         tbody.innerHTML += row;
                     });
-                }
 
-                // 3. INITIALIZE the new DataTable instance
-                validationTable = $('#pending-reports-table').DataTable({
-                    "pageLength": 5, // Set default entries to 5
-                    "lengthMenu": [5, 10], // Show options for 5, 10, 25 entries
-                    "responsive": true,
-                    "order": [[ 6, "desc" ]], // Default sort by Tanggal (column 6) descending
-                    
-                    // Disable sorting on the Checkbox (col 0) and Foto (col 7)
-                    "columnDefs": [
-                      {
-                        "orderable": false,
-                        "targets": [0, 7] 
-                      },
-                      {
-                        "className": "text-center", // Center-align checkbox and photos
-                        "targets": [0, 7]
-                      }
-                    ],
-                    
-                    // Add Indonesian translation
-                    "language": {
-                        "search": "Cari:",
-                        "lengthMenu": "Tampilkan _MENU_ data",
-                        "info": "Menampilkan _START_ sampai _END_ dari _TOTAL_ data",
-                        "infoEmpty": "Tidak ada data",
-                        "infoFiltered": "(difilter dari _MAX_ total data)",
-                        "paginate": {
-                            "first": "Pertama",
-                            "last": "Terakhir",
-                            "next": "Berikutnya",
-                            "previous": "Sebelumnya"
+                    // 3. INITIALIZE the new DataTable instance
+                    validationTable = $('#pending-reports-table').DataTable({
+                        "pageLength": 5,
+                        "lengthMenu": [5, 10],
+                        "responsive": true,
+                        "order": [[ 6, "desc" ]],
+                        "columnDefs": [
+                          {
+                            "orderable": false,
+                            "targets": [0, 7]
+                          },
+                          {
+                            "className": "text-center",
+                            "targets": [0, 7]
+                          }
+                        ],
+                        "language": {
+                            "search": "Cari:",
+                            "lengthMenu": "Tampilkan _MENU_ data",
+                            "info": "Menampilkan _START_ sampai _END_ dari _TOTAL_ data",
+                            "infoEmpty": "Tidak ada data",
+                            "infoFiltered": "(difilter dari _MAX_ total data)",
+                            "paginate": {
+                                "first": "Pertama",
+                                "last": "Terakhir",
+                                "next": "Berikutnya",
+                                "previous": "Sebelumnya"
+                            }
                         }
-                    }
-                });
+                    });
+                }
 
                 // Update select all checkbox
                 updateSelectAllCheckbox();
