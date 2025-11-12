@@ -15,17 +15,15 @@ $username = $_SESSION['username'] ?? '';
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Validasi Laporan Bencana - BPBD</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" ...>
-    
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.datatables.net/2.0.8/css/dataTables.bootstrap5.min.css">
-    
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11.10.1/dist/sweetalert2.min.css">
 </head>
-<body>
+<body class="logged-in">
     <div class="p-4 p-md-5">
         <div class="container">
-            <!-- Header -->
             <header class="bpbd-header shadow-sm rounded p-4 mb-4">
                 <div class="d-flex justify-content-between align-items-center">
                     <div class="d-flex align-items-center">
@@ -33,7 +31,7 @@ $username = $_SESSION['username'] ?? '';
                             <img src="uploads/bpbd-logo.png" alt="BPBD Logo" class="header-bpbd-logo">
                         </div>
                         <div>
-                            <h1 class="h2 h1-md fw-bold text-dark mb-1">Validasi Laporan Bencana</h1>
+                            <h1 class="h2 h1-md fw-bold text-dark mb-1">Validasi Laporan</h1>
                             <p class="text-muted mb-0">Sistem Informasi Bencana BPBD Kabupaten Minahasa</p>
                             <p class="text-muted small mb-0">Selamat datang, <?php echo htmlspecialchars($username); ?> (Kepala)</p>
                         </div>
@@ -56,11 +54,10 @@ $username = $_SESSION['username'] ?? '';
                 </div>
             </header>
 
-            <!-- Monthly Validation Section -->
-            <div class="bg-white p-4 rounded shadow-sm">
-                <h2 class="h5 fw-semibold mb-3 text-dark border-bottom pb-2">Validasi Laporan Bulanan</h2>
+            <div class="bg-white p-4 rounded shadow-sm mb-4">
+                <h2 class="h5 fw-semibold mb-3 text-dark border-bottom pb-2">Statistik Laporan Bulan Ini (Semua Kategori)</h2>
                 <div class="mb-4">
-                    <p class="text-muted">Laporan bencana bulan ini akan divalidasi secara batch. Pastikan semua laporan telah ditinjau sebelum menyetujui.</p>
+                    <p class="text-muted">Statistik ini mencakup Bencana Alam dan Insiden Darurat yang dilaporkan bulan ini.</p>
                     <div class="row g-3">
                         <div class="col-md-4">
                             <div class="card bg-light">
@@ -90,55 +87,81 @@ $username = $_SESSION['username'] ?? '';
                 </div>
 
                 <div class="d-flex gap-2 mb-4">
-                    <button id="approve-all-btn" class="btn btn-success">Setujui Semua Laporan Bulan Ini</button>
-                    <button id="reject-all-btn" class="btn btn-danger">Tolak Semua Laporan Bulan Ini</button>
+                    <button id="approve-all-btn" class="btn btn-success">Setujui Laporan Terpilih</button>
+                    <button id="reject-all-btn" class="btn btn-danger">Tolak Laporan Terpilih</button>
                 </div>
-<div class="row g-3 mb-3">
-    <div class="col-md-4">
-        <label for="filter-status" class="form-label">Filter by Status</label>
-        <select id="filter-status" class="form-select">
-            <option value="">Semua Status</option>
-            <option value="Menunggu">Menunggu</option>
-            <option value="Disetujui">Disetujui</option>
-            <option value="Ditolak">Ditolak</option>
-        </select>
-    </div>
-    <div class="col-md-4">
-        <label for="filter-jenis" class="form-label">Filter by Jenis Bencana</label>
-        <select id="filter-jenis" class="form-select">
-            <option value="">Semua Jenis Bencana</option>
-            <option value="Banjir">Banjir</option>
-            <option value="Tanah Longsor">Tanah Longsor</option>
-            <option value="Angin Puting Beliung">Angin Puting Beliung</option>
-            <option value="Gempa Bumi">Gempa Bumi</option>
-        </select>
-    </div>
-</div>
+                
+                <div class="row g-3 mb-3">
+                    <div class="col-md-4">
+                        <label for="filter-status" class="form-label">Filter berdasarkan Status (Semua Tabel)</label>
+                        <select id="filter-status" class="form-select">
+                            <option value="">Semua Status</option>
+                            <option value="Menunggu">Menunggu</option>
+                            <option value="Disetujui">Disetujui</option>
+                            <option value="Ditolak">Ditolak</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label for="filter-jenis" class="form-label">Filter Jenis Bencana (Tabel Bencana)</label>
+                        <select id="filter-jenis" class="form-select">
+                            <option value="">Semua Jenis Bencana</option>
+                            <option value="Banjir">Banjir</option>
+                            <option value="Tanah Longsor">Tanah Longsor</option>
+                            <option value="Angin Puting Beliung">Angin Puting Beliung</option>
+                            <option value="Gempa Bumi">Gempa Bumi</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white p-4 rounded shadow-sm mb-4">
+                <h2 class="h5 fw-semibold mb-3 text-dark border-bottom pb-2">Validasi Laporan Bencana (Dampak Luas)</h2>
                 <div class="table-responsive">
                    <table id="pending-reports-table" class="table table-hover align-middle">
                         <thead class="table-light">
                             <tr>
-                                <th scope="col"><input type="checkbox" id="select-all"></th>
+                                <th scope="col"><input type="checkbox" id="select-all-bencana"></th>
                                 <th scope="col">Jenis Bencana</th>
                                 <th scope="col">Lokasi</th>
                                 <th scope="col">Terdampak</th>
                                 <th scope="col">Kerusakan</th>
                                 <th scope="col">Pengirim</th>
-                                <th scope="col">Tanggal</th>
+                                <th scope="col">Tanggal Lapor</th>
                                 <th scope="col">Foto</th>
                                 <th scope="col">Status</th>
                             </tr>
                         </thead>
                         <tbody id="pending-reports-body">
-                            <!-- Pending reports will be loaded here -->
-                        </tbody>
+                            </tbody>
                     </table>
                 </div>
             </div>
+            
+            <div class="bg-white p-4 rounded shadow-sm">
+                <h2 class="h5 fw-semibold mb-3 text-dark border-bottom pb-2">Validasi Laporan Insiden Darurat</h2>
+                <div class="table-responsive">
+                   <table id="insiden-reports-table" class="table table-hover align-middle">
+                        <thead class="table-light">
+                            <tr>
+                                <th scope="col"><input type="checkbox" id="select-all-insiden"></th>
+                                <th scope="col">Jenis Insiden</th>
+                                <th scope="col">Lokasi</th>
+                                <th scope="col">Keterangan</th>
+                                <th scope="col">Pengirim</th>
+                                <th scope="col">Tanggal Lapor</th>
+                                <th scope="col">Foto</th>
+                                <th scope="col">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="insiden-reports-body">
+                            </tbody>
+                    </table>
+                </div>
+            </div>
+
         </div>
     </div>
 
-    <!-- Photo Modal -->
     <div class="modal fade" id="photo-modal" tabindex="-1" aria-labelledby="photoModalLabel" aria-hidden="true">
         <div class="modal-dialog modal-lg">
             <div class="modal-content">
@@ -153,19 +176,13 @@ $username = $_SESSION['username'] ?? '';
         </div>
     </div>
 
-    <script src="https://code.jquery.com/jquery-3.7.1.min.js" integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo=" crossorigin="anonymous"></script>
-    
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
-    
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.datatables.net/2.0.8/js/dataTables.min.js"></script>
     <script src="https://cdn.datatables.net/2.0.8/js/dataTables.bootstrap5.min.js"></script>
-    
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     
     <script src="validate.js"></script>
 
-    </body>
-</html>
-</html>
 </body>
 </html>

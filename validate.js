@@ -1,8 +1,9 @@
-
 // --- VALIDATION PAGE SCRIPT ---
-let validationTable; 
+let validationBencanaTable; 
+let validationInsidenTable;
+
 /**
- * Load disaster reports for monthly batch validation
+ * [FUNGSI DIPERBARUI] Muat SEMUA laporan dan pisahkan ke tabel masing-masing
  */
 function loadPendingReports() {
     fetch('get_disasters.php')
@@ -14,8 +15,7 @@ function loadPendingReports() {
         })
         .then(data => {
             if (data.success) {
-                const tbody = document.getElementById('pending-reports-body');
-
+                
                 // Get current month reports
                 const currentMonth = new Date().getMonth();
                 const currentYear = new Date().getFullYear();
@@ -25,7 +25,13 @@ function loadPendingReports() {
                     return reportDate.getMonth() === currentMonth && reportDate.getFullYear() === currentYear;
                 });
 
-                // Count statistics
+                // --- LOGIKA PEMISAHAN DATA BARU ---
+                // Pisahkan data berdasarkan kategori
+                // Fallback: data lama yg 'kategori_laporan' == null dianggap 'bencana'
+                const bencanaReports = monthlyReports.filter(d => d.kategori_laporan === 'bencana' || !d.kategori_laporan);
+                const insidenReports = monthlyReports.filter(d => d.kategori_laporan === 'insiden');
+
+                // --- Update Statistik (tetap global) ---
                 const pendingCount = monthlyReports.filter(r => r.status === 'pending').length;
                 const approvedCount = monthlyReports.filter(r => r.status === 'approved').length;
                 const rejectedCount = monthlyReports.filter(r => r.status === 'rejected').length;
@@ -34,93 +40,58 @@ function loadPendingReports() {
                 document.getElementById('approved-count').textContent = approvedCount;
                 document.getElementById('rejected-count').textContent = rejectedCount;
 
-                if (monthlyReports.length === 0) {
-                    tbody.innerHTML = `<tr><td colspan="9" class="text-center py-4 text-muted">Tidak ada laporan bulan ini.</td></tr>`;
-                } else {
-                    // 1. DESTROY existing DataTable instance if it exists
-                    if ($.fn.DataTable.isDataTable('#pending-reports-table')) {
-                        $('#pending-reports-table').DataTable().destroy();
+                // --- Hancurkan DataTables yang ada ---
+                if ($.fn.DataTable.isDataTable('#pending-reports-table')) {
+                    $('#pending-reports-table').DataTable().destroy();
+                }
+                if ($.fn.DataTable.isDataTable('#insiden-reports-table')) {
+                    $('#insiden-reports-table').DataTable().destroy();
+                }
+                
+                // --- Panggil fungsi untuk mengisi setiap tabel ---
+                populateBencanaTable(bencanaReports);
+                populateInsidenTable(insidenReports);
+                
+                // --- Inisialisasi ulang DataTables (JIKA ADA DATA) ---
+                const dataTableOptions = {
+                    "pageLength": 5,
+                    "lengthMenu": [5, 10],
+                    "responsive": true,
+                    "language": {
+                        "search": "Cari:",
+                        "lengthMenu": "Tampilkan _MENU_ data",
+                        "info": "Menampilkan _START_ sampai _END_ dari _TOTAL_ data",
+                        "infoEmpty": "Tidak ada data",
+                        "infoFiltered": "(difilter dari _MAX_ total data)",
+                        "paginate": { "first": "Pertama", "last": "Terakhir", "next": "Berikutnya", "previous": "Sebelumnya" }
                     }
+                };
 
-                    tbody.innerHTML = ''; // Clear table body
-
-                    // 2. GENERATE the table rows
-                    monthlyReports.forEach(report => {
-                        const statusBadge = report.status === 'approved' ? '<span class="badge bg-success">Disetujui</span>' :
-                                           report.status === 'rejected' ? '<span class="badge bg-danger">Ditolak</span>' :
-                                           '<span class="badge bg-warning">Menunggu</span>';
-
-                        const checkbox = report.status === 'pending' ? `<input type="checkbox" class="report-checkbox" value="${report.id}">` : '';
-
-                        // Generate photo thumbnails
-                        let photoThumbnails = '';
-                        if (report.photos && report.photos.length > 0) {
-                            photoThumbnails = '<div class="d-flex flex-wrap gap-1">';
-                            report.photos.forEach(photo => {
-                                photoThumbnails += `<img src="${photo.file_path}" alt="Foto bencana" class="img-thumbnail" style="width: 40px; height: 40px; object-fit: cover;" data-bs-toggle="modal" data-bs-target="#photo-modal" data-photo-src="${photo.file_path}" data-photo-title="${photo.original_filename}">`;
-                            });
-                            photoThumbnails += '</div>';
-                        } else {
-                            photoThumbnails = '<span class="text-muted">Tidak ada foto</span>';
-                        }
-
-                        const row = `
-                            <tr>
-                                <td class="text-center">${checkbox}</td>
-                                <td class="fw-medium">${report.jenisBencana}</td>
-                                <td>${report.lokasi}</td>
-                                <td>${report.jiwaTerdampak} Jiwa / ${report.kkTerdampak} KK</td>
-                                <td>
-                                    <span class="badge ${
-                                        report.tingkatKerusakan === 'Berat' ? 'bg-danger-subtle text-danger-emphasis' :
-                                        report.tingkatKerusakan === 'Sedang' ? 'bg-warning-subtle text-warning-emphasis' : 'bg-secondary-subtle text-secondary-emphasis'
-                                    } rounded-pill">${report.tingkatKerusakan}</span>
-                                </td>
-                                <td>${report.submitted_by_name}</td>
-                                <td>${new Date(report.created_at).toLocaleDateString('id-ID', { year: 'numeric', month: 'long', day: 'numeric' })}</td>
-                                <td class="text-center">${photoThumbnails}</td>
-                                <td>${statusBadge}</td>
-                            </tr>
-                        `;
-                        tbody.innerHTML += row;
-                    });
-
-                    // 3. INITIALIZE the new DataTable instance
-                    validationTable = $('#pending-reports-table').DataTable({
-                        "pageLength": 5,
-                        "lengthMenu": [5, 10],
-                        "responsive": true,
-                        "order": [[ 6, "desc" ]],
+                if (bencanaReports.length > 0) {
+                    validationBencanaTable = $('#pending-reports-table').DataTable({
+                        ...dataTableOptions,
+                        "order": [[6, "desc"]], // Urutkan berdasarkan Tanggal Lapor
                         "columnDefs": [
-                          {
-                            "orderable": false,
-                            "targets": [0, 7]
-                          },
-                          {
-                            "className": "text-center",
-                            "targets": [0, 7]
-                          }
-                        ],
-                        "language": {
-                            "search": "Cari:",
-                            "lengthMenu": "Tampilkan _MENU_ data",
-                            "info": "Menampilkan _START_ sampai _END_ dari _TOTAL_ data",
-                            "infoEmpty": "Tidak ada data",
-                            "infoFiltered": "(difilter dari _MAX_ total data)",
-                            "paginate": {
-                                "first": "Pertama",
-                                "last": "Terakhir",
-                                "next": "Berikutnya",
-                                "previous": "Sebelumnya"
-                            }
-                        }
+                          { "orderable": false, "targets": [0, 3, 4, 7] }
+                        ]
                     });
                 }
+                
+                if (insidenReports.length > 0) {
+                    validationInsidenTable = $('#insiden-reports-table').DataTable({
+                        ...dataTableOptions,
+                        "order": [[5, "desc"]], // Urutkan berdasarkan Tanggal Lapor
+                        "columnDefs": [
+                          { "orderable": false, "targets": [0, 2, 3, 6] }
+                        ]
+                    });
+                }
+                
+                // Perbarui status filter
+                applyGlobalFilters();
+                updateSelectAllCheckboxes();
 
-                // Update select all checkbox
-                updateSelectAllCheckbox();
             } else {
-                // Redirect to login if not authenticated
                 if (data.message === 'Not authenticated') {
                     window.location.href = 'index.php';
                 } else {
@@ -135,66 +106,153 @@ function loadPendingReports() {
 }
 
 /**
- * Validate a disaster report (approve or reject)
- * @param {number} id - Report ID
- * @param {string} action - 'approved' or 'rejected'
+ * [FUNGSI BARU] Mengisi tabel Bencana (#pending-reports-body)
  */
-function validateReport(id, action) {
-    const formData = new FormData();
-    formData.append('id', id);
-    formData.append('action', action);
+function populateBencanaTable(bencanaReports) {
+    const tbody = document.getElementById('pending-reports-body');
+    tbody.innerHTML = ''; // Kosongkan tabel
 
-    // FIX: The fetch request must point to the processing script, not the page itself.
-    fetch('validation_process.php', {
-        method: 'POST',
-        body: formData
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            Swal.fire({
-                icon: 'success',
-                title: 'Berhasil!',
-                text: data.message,
-                timer: 2000,
-                showConfirmButton: false
+    if (bencanaReports.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="9" class="text-center py-4 text-muted">Tidak ada laporan bencana bulan ini.</td></tr>`;
+        return;
+    }
+
+    bencanaReports.forEach(report => {
+        const statusBadge = report.status === 'approved' ? '<span class="badge bg-success">Disetujui</span>' :
+                           report.status === 'rejected' ? '<span class="badge bg-danger">Ditolak</span>' :
+                           '<span class="badge bg-warning">Menunggu</span>';
+
+        const checkbox = report.status === 'pending' ? `<input type="checkbox" class="report-checkbox" value="${report.id}">` : '';
+
+        let photoThumbnails = '';
+        if (report.photos && report.photos.length > 0) {
+            photoThumbnails = '<div class="d-flex flex-wrap gap-1">';
+            report.photos.forEach(photo => {
+                photoThumbnails += `<img src="${photo.file_path}" alt="Foto bencana" class="img-thumbnail" style="width: 40px; height: 40px; object-fit: cover;" data-bs-toggle="modal" data-bs-target="#photo-modal" data-photo-src="${photo.file_path}" data-photo-title="${photo.original_filename}">`;
             });
-            loadPendingReports(); // Reload the list
+            photoThumbnails += '</div>';
         } else {
-            Swal.fire({
-                icon: 'error',
-                title: 'Gagal!',
-                text: data.message
-            });
+            photoThumbnails = '<span class="text-muted">Tidak ada foto</span>';
         }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        Swal.fire({
-            icon: 'error',
-            title: 'Error!',
-            text: 'Gagal memproses validasi laporan.'
-        });
+
+        const row = `
+            <tr>
+                <td class="text-center">${checkbox}</td>
+                <td class="fw-medium">${report.jenisBencana}</td>
+                <td>${report.lokasi}</td>
+                <td>${report.jiwaTerdampak} Jiwa / ${report.kkTerdampak} KK</td>
+                <td>
+                    <span class="badge ${
+                        report.tingkatKerusakan === 'Berat' ? 'bg-danger-subtle text-danger-emphasis' :
+                        report.tingkatKerusakan === 'Sedang' ? 'bg-warning-subtle text-warning-emphasis' : 'bg-secondary-subtle text-secondary-emphasis'
+                    } rounded-pill">${report.tingkatKerusakan}</span>
+                </td>
+                <td>${report.submitted_by_name}</td>
+                <td>${new Date(report.created_at).toLocaleDateString('id-ID', { year: 'numeric', month: 'long', day: 'numeric' })}</td>
+                <td class="text-center">${photoThumbnails}</td>
+                <td>${statusBadge}</td>
+            </tr>
+        `;
+        tbody.innerHTML += row;
     });
 }
 
 /**
- * Update select all checkbox state and button text
+ * [FUNGSI BARU] Mengisi tabel Insiden (#insiden-reports-body)
  */
-function updateSelectAllCheckbox() {
-    const selectAllCheckbox = document.getElementById('select-all');
-    const checkboxes = document.querySelectorAll('.report-checkbox');
-    const checkedBoxes = document.querySelectorAll('.report-checkbox:checked');
+function populateInsidenTable(insidenReports) {
+    const tbody = document.getElementById('insiden-reports-body');
+    tbody.innerHTML = ''; // Kosongkan tabel
 
-    selectAllCheckbox.checked = checkboxes.length > 0 && checkedBoxes.length === checkboxes.length;
-    selectAllCheckbox.indeterminate = checkedBoxes.length > 0 && checkedBoxes.length < checkboxes.length;
+    if (insidenReports.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="8" class="text-center py-4 text-muted">Tidak ada laporan insiden bulan ini.</td></tr>`;
+        return;
+    }
 
-    // Update button text based on selection
+    insidenReports.forEach(report => {
+        const statusBadge = report.status === 'approved' ? '<span class="badge bg-success">Disetujui</span>' :
+                           report.status === 'rejected' ? '<span class="badge bg-danger">Ditolak</span>' :
+                           '<span class="badge bg-warning">Menunggu</span>';
+
+        const checkbox = report.status === 'pending' ? `<input type="checkbox" class="report-checkbox" value="${report.id}">` : '';
+
+        let photoThumbnails = '';
+        if (report.photos && report.photos.length > 0) {
+            photoThumbnails = '<div class="d-flex flex-wrap gap-1">';
+            report.photos.forEach(photo => {
+                photoThumbnails += `<img src="${photo.file_path}" alt="Foto insiden" class="img-thumbnail" style="width: 40px; height: 40px; object-fit: cover;" data-bs-toggle="modal" data-bs-target="#photo-modal" data-photo-src="${photo.file_path}" data-photo-title="${photo.original_filename}">`;
+            });
+            photoThumbnails += '</div>';
+        } else {
+            photoThumbnails = '<span class="text-muted">Tidak ada foto</span>';
+        }
+
+        const row = `
+            <tr>
+                <td class="text-center">${checkbox}</td>
+                <td class="fw-medium">${report.jenisBencana}</td>
+                <td>${report.lokasi}</td>
+                <td>${report.keterangan || '<span class="text-muted">N/A</span>'}</td>
+                <td>${report.submitted_by_name}</td>
+                <td>${new Date(report.created_at).toLocaleDateString('id-ID', { year: 'numeric', month: 'long', day: 'numeric' })}</td>
+                <td class="text-center">${photoThumbnails}</td>
+                <td>${statusBadge}</td>
+            </tr>
+        `;
+        tbody.innerHTML += row;
+    });
+}
+
+
+/**
+ * [FUNGSI DIPERBARUI] Menerapkan filter ke tabel yang relevan
+ */
+function applyGlobalFilters() {
+    const statusFilter = document.getElementById('filter-status').value;
+    const jenisFilter = document.getElementById('filter-jenis').value;
+
+    if (validationBencanaTable) {
+        validationBencanaTable.column(8).search(statusFilter); // Kolom Status Bencana
+        validationBencanaTable.column(1).search(jenisFilter);  // Kolom Jenis Bencana
+        validationBencanaTable.draw();
+    }
+    
+    if (validationInsidenTable) {
+        validationInsidenTable.column(7).search(statusFilter); // Kolom Status Insiden
+        // Filter Jenis Bencana tidak berlaku untuk tabel insiden
+        validationInsidenTable.draw();
+    }
+}
+
+
+/**
+ * [FUNGSI DIPERBARUI] Update checkbox "select all" untuk kedua tabel
+ */
+function updateSelectAllCheckboxes() {
+    // Checkbox Bencana
+    const selectAllBencana = document.getElementById('select-all-bencana');
+    const bencanaCheckboxes = document.querySelectorAll('#pending-reports-body .report-checkbox');
+    const checkedBencana = document.querySelectorAll('#pending-reports-body .report-checkbox:checked');
+    if (selectAllBencana) {
+        selectAllBencana.checked = bencanaCheckboxes.length > 0 && checkedBencana.length === bencanaCheckboxes.length;
+        selectAllBencana.indeterminate = checkedBencana.length > 0 && checkedBencana.length < bencanaCheckboxes.length;
+    }
+
+    // Checkbox Insiden
+    const selectAllInsiden = document.getElementById('select-all-insiden');
+    const insidenCheckboxes = document.querySelectorAll('#insiden-reports-body .report-checkbox');
+    const checkedInsiden = document.querySelectorAll('#insiden-reports-body .report-checkbox:checked');
+    if (selectAllInsiden) {
+        selectAllInsiden.checked = insidenCheckboxes.length > 0 && checkedInsiden.length === insidenCheckboxes.length;
+        selectAllInsiden.indeterminate = checkedInsiden.length > 0 && checkedInsiden.length < insidenCheckboxes.length;
+    }
+    
+    // Update tombol
     updateButtonText();
 }
 
 /**
- * Update button text based on selected reports
+ * [FUNGSI DIPERBARUI] Update tombol berdasarkan *semua* checkbox yang dicentang
  */
 function updateButtonText() {
     const checkedBoxes = document.querySelectorAll('.report-checkbox:checked');
@@ -204,8 +262,8 @@ function updateButtonText() {
     const rejectBtn = document.getElementById('reject-all-btn');
 
     if (count === 0) {
-        approveBtn.textContent = 'Setujui Semua Laporan Bulan Ini';
-        rejectBtn.textContent = 'Tolak Semua Laporan Bulan Ini';
+        approveBtn.textContent = 'Setujui Laporan Terpilih';
+        rejectBtn.textContent = 'Tolak Laporan Terpilih';
         approveBtn.disabled = true;
         rejectBtn.disabled = true;
     } else if (count === 1) {
@@ -227,41 +285,39 @@ function updateButtonText() {
 function initializeButtons() {
     const approveBtn = document.getElementById('approve-all-btn');
     const rejectBtn = document.getElementById('reject-all-btn');
-
-    // Ensure buttons start disabled
-    approveBtn.disabled = true;
-    rejectBtn.disabled = true;
+    if (approveBtn && rejectBtn) {
+        approveBtn.disabled = true;
+        rejectBtn.disabled = true;
+    }
 }
 
-
-
 /**
- * Handle select all checkbox
+ * [FUNGSI DIPERBARUI] Handle select all untuk kedua tabel
  */
-function handleSelectAll() {
-    const selectAllCheckbox = document.getElementById('select-all');
-    const checkboxes = document.querySelectorAll('.report-checkbox');
-
+function handleSelectAll(e) {
+    let checkboxes;
+    if (e.target.id === 'select-all-bencana') {
+        checkboxes = document.querySelectorAll('#pending-reports-body .report-checkbox');
+    } else if (e.target.id === 'select-all-insiden') {
+        checkboxes = document.querySelectorAll('#insiden-reports-body .report-checkbox');
+    } else {
+        return;
+    }
+    
     checkboxes.forEach(checkbox => {
-        checkbox.checked = selectAllCheckbox.checked;
+        checkbox.checked = e.target.checked;
     });
-
-    // Update button states after selecting/deselecting all
     updateButtonText();
 }
 
 /**
- * Approve all pending reports for current month
+ * [TETAP SAMA] Logika batch approve (mengambil semua checkbox yang dicentang)
  */
 function approveAllReports() {
     const selectedCheckboxes = document.querySelectorAll('.report-checkbox:checked');
 
     if (selectedCheckboxes.length === 0) {
-        Swal.fire({
-            icon: 'warning',
-            title: 'Pilih Laporan!',
-            text: 'Pilih laporan yang ingin disetujui terlebih dahulu.'
-        });
+        Swal.fire({ icon: 'warning', title: 'Pilih Laporan!', text: 'Pilih laporan yang ingin disetujui.' });
         return;
     }
 
@@ -293,46 +349,28 @@ function approveAllReports() {
                     const failCount = results.length - successCount;
 
                     if (failCount === 0) {
-                        Swal.fire({
-                            icon: 'success',
-                            title: 'Berhasil!',
-                            text: `Berhasil menyetujui ${successCount} laporan.`,
-                            timer: 2000,
-                            showConfirmButton: false
-                        });
+                        Swal.fire({ icon: 'success', title: 'Berhasil!', text: `Berhasil menyetujui ${successCount} laporan.`, timer: 2000, showConfirmButton: false });
                     } else {
-                        Swal.fire({
-                            icon: 'warning',
-                            title: 'Sebagian Berhasil',
-                            text: `Berhasil menyetujui ${successCount} laporan, gagal ${failCount} laporan.`
-                        });
+                        Swal.fire({ icon: 'warning', title: 'Sebagian Berhasil', text: `Berhasil menyetujui ${successCount} laporan, gagal ${failCount} laporan.` });
                     }
-                    loadPendingReports();
+                    loadPendingReports(); // Muat ulang kedua tabel
                 })
                 .catch(error => {
                     console.error('Error:', error);
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'Error!',
-                        text: 'Gagal memproses validasi laporan.'
-                    });
+                    Swal.fire({ icon: 'error', title: 'Error!', text: 'Gagal memproses validasi laporan.' });
                 });
         }
     });
 }
 
 /**
- * Reject all pending reports for current month
+ * [TETAP SAMA] Logika batch reject (mengambil semua checkbox yang dicentang)
  */
 function rejectAllReports() {
     const selectedCheckboxes = document.querySelectorAll('.report-checkbox:checked');
 
     if (selectedCheckboxes.length === 0) {
-        Swal.fire({
-            icon: 'warning',
-            title: 'Pilih Laporan!',
-            text: 'Pilih laporan yang ingin ditolak terlebih dahulu.'
-        });
+        Swal.fire({ icon: 'warning', title: 'Pilih Laporan!', text: 'Pilih laporan yang ingin ditolak.' });
         return;
     }
 
@@ -364,29 +402,15 @@ function rejectAllReports() {
                     const failCount = results.length - successCount;
 
                     if (failCount === 0) {
-                        Swal.fire({
-                            icon: 'success',
-                            title: 'Berhasil!',
-                            text: `Berhasil menolak ${successCount} laporan.`,
-                            timer: 2000,
-                            showConfirmButton: false
-                        });
+                        Swal.fire({ icon: 'success', title: 'Berhasil!', text: `Berhasil menolak ${successCount} laporan.`, timer: 2000, showConfirmButton: false });
                     } else {
-                        Swal.fire({
-                            icon: 'warning',
-                            title: 'Sebagian Berhasil',
-                            text: `Berhasil menolak ${successCount} laporan, gagal ${failCount} laporan.`
-                        });
+                        Swal.fire({ icon: 'warning', title: 'Sebagian Berhasil', text: `Berhasil menolak ${successCount} laporan, gagal ${failCount} laporan.` });
                     }
-                    loadPendingReports();
+                    loadPendingReports(); // Muat ulang kedua tabel
                 })
                 .catch(error => {
                     console.error('Error:', error);
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'Error!',
-                        text: 'Gagal memproses validasi laporan.'
-                    });
+                    Swal.fire({ icon: 'error', title: 'Error!', text: 'Gagal memproses validasi laporan.' });
                 });
         }
     });
@@ -399,56 +423,64 @@ function handleLogout() {
     window.location.href = 'logout.php';
 }
 
-// --- EVENT LISTENERS ---
+// --- [EVENT LISTENERS DIPERBARUI] ---
 
-// Load pending reports when page loads
 document.addEventListener('DOMContentLoaded', function() {
     initializeButtons();
     loadPendingReports();
 
-    // Select all checkbox
-    document.getElementById('select-all').addEventListener('change', handleSelectAll);
+    // Checkbox "Select All"
+    const selectAllBencana = document.getElementById('select-all-bencana');
+    if (selectAllBencana) {
+        selectAllBencana.addEventListener('change', handleSelectAll);
+    }
+    const selectAllInsiden = document.getElementById('select-all-insiden');
+    if (selectAllInsiden) {
+        selectAllInsiden.addEventListener('change', handleSelectAll);
+    }
 
-    // Filter by Status
-    document.getElementById('filter-status').addEventListener('change', function(e) {
-        if (validationTable) {
-            // Column 8 is the "Status" column
-            validationTable.column(8).search(e.target.value).draw();
-        }
-    });
+    // Filter by Status (Terapkan ke kedua tabel)
+    const filterStatus = document.getElementById('filter-status');
+    if (filterStatus) {
+        filterStatus.addEventListener('change', applyGlobalFilters);
+    }
 
-    // Filter by Jenis Bencana
-    document.getElementById('filter-jenis').addEventListener('change', function(e) {
-        if (validationTable) {
-            // Column 1 is the "Jenis Bencana" column
-            validationTable.column(1).search(e.target.value).draw();
-        }
-    });
+    // Filter by Jenis (Hanya terapkan ke tabel bencana)
+    const filterJenis = document.getElementById('filter-jenis');
+    if (filterJenis) {
+        filterJenis.addEventListener('change', applyGlobalFilters);
+    }
 
-    // Individual checkboxes
+    // Listener untuk checkbox individual (untuk update tombol)
     document.addEventListener('change', function(e) {
         if (e.target.classList.contains('report-checkbox')) {
-            updateSelectAllCheckbox();
+            updateSelectAllCheckboxes();
         }
     });
 
-    // Approve all button
-    document.getElementById('approve-all-btn').addEventListener('click', approveAllReports);
+    // Tombol Aksi Batch
+    const approveBtn = document.getElementById('approve-all-btn');
+    if (approveBtn) {
+        approveBtn.addEventListener('click', approveAllReports);
+    }
+    const rejectBtn = document.getElementById('reject-all-btn');
+    if (rejectBtn) {
+        rejectBtn.addEventListener('click', rejectAllReports);
+    }
 
-    // Reject all button
-    document.getElementById('reject-all-btn').addEventListener('click', rejectAllReports);
+    // Tombol Logout
+    const logoutBtn = document.getElementById('logout-btn');
+    if (logoutBtn) {
+        logoutBtn.addEventListener('click', handleLogout);
+    }
 
-    // Logout button
-    document.getElementById('logout-btn').addEventListener('click', handleLogout);
-
-    // Handle photo modal
+    // Handle Photo Modal
     document.addEventListener('click', function(e) {
         if (e.target.matches('[data-bs-target="#photo-modal"]')) {
             const imgSrc = e.target.getAttribute('data-photo-src');
             const imgTitle = e.target.getAttribute('data-photo-title');
             document.getElementById('photo-modal-image').src = imgSrc;
-            document.getElementById('photoModalLabel').textContent = imgTitle || 'Foto Bencana';
+            document.getElementById('photoModalLabel').textContent = imgTitle || 'Foto Laporan';
         }
     });
 });
-

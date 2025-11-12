@@ -15,30 +15,30 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 }
 
 $id = $_POST['id'] ?? null;
-$jenisBencana = trim($_POST['jenisBencana'] ?? '');
+$jenisBencana = trim($_POST['jenisBencana'] ?? ''); // Ini akan readonly, jadi aman
 $lokasi = trim($_POST['lokasi'] ?? '');
 $jiwaTerdampak = (int)($_POST['jiwaTerdampak'] ?? 0);
 $kkTerdampak = (int)($_POST['kkTerdampak'] ?? 0);
 $tingkatKerusakan = trim($_POST['tingkatKerusakan'] ?? '');
 $disasterDate = trim($_POST['disasterDate'] ?? '');
+$keterangan = trim($_POST['keterangan'] ?? null); // AMBIL KETERANGAN BARU
 
 if (!$id || empty($jenisBencana) || empty($lokasi) || $jiwaTerdampak < 0 || $kkTerdampak < 0 || empty($tingkatKerusakan) || empty($disasterDate)) {
     echo json_encode(['success' => false, 'message' => 'All fields are required and must be valid']);
     exit;
 }
 
-// Check if user owns the disaster or is head
+// Cek kepemilikan
 $role = $_SESSION['role'];
 $userId = $_SESSION['user_id'];
 
 try {
-    // Check ownership
     $checkStmt = $pdo->prepare("SELECT submitted_by FROM disasters WHERE id = ?");
     $checkStmt->execute([$id]);
     $disaster = $checkStmt->fetch();
 
     if (!$disaster) {
-        echo json_encode(['success' => false, 'message' => 'Disaster report not found']);
+        echo json_encode(['success' => false, 'message' => 'Laporan tidak ditemukan']);
         exit;
     }
 
@@ -47,8 +47,17 @@ try {
         exit;
     }
 
-    // Update disaster report
-    $sql = "UPDATE disasters SET jenisBencana = ?, lokasi = ?, jiwaTerdampak = ?, kkTerdampak = ?, tingkatKerusakan = ?, disaster_date = ? WHERE id = ?";
+    // SQL DIPERBARUI: Tambahkan 'keterangan = ?'
+    $sql = "UPDATE disasters SET 
+                jenisBencana = ?, 
+                lokasi = ?, 
+                jiwaTerdampak = ?, 
+                kkTerdampak = ?, 
+                tingkatKerusakan = ?, 
+                disaster_date = ?,
+                keterangan = ?
+            WHERE id = ?";
+    
     $stmt = $pdo->prepare($sql);
     $stmt->execute([
         $jenisBencana,
@@ -57,10 +66,11 @@ try {
         $kkTerdampak,
         $tingkatKerusakan,
         $disasterDate,
+        $keterangan, // Tambahkan di sini
         $id
     ]);
 
-    echo json_encode(['success' => true, 'message' => 'Disaster report updated successfully']);
+    echo json_encode(['success' => true, 'message' => 'Laporan berhasil diperbarui']);
 } catch (PDOException $e) {
     echo json_encode(['success' => false, 'message' => 'Database error: ' . $e->getMessage()]);
 }
